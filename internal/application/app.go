@@ -4,15 +4,19 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type App struct {
-	router http.Handler
+	router      http.Handler
+	redisClient *redis.Client
 }
 
-func New() *App {
+func New(redisClient *redis.Client) *App {
 	app := &App{
-		router: loadRoutes(),
+		router:      loadRoutes(),
+		redisClient: redisClient,
 	}
 
 	return app
