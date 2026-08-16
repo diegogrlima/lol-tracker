@@ -19,6 +19,12 @@ type Config struct {
 	CacheTTL      time.Duration
 }
 
+type MatchConfig struct {
+	ServerAddress string
+	RiotAPIKey    string
+	RiotRegion    string
+}
+
 func Load() (Config, error) {
 	redisDB, err := strconv.Atoi(getEnv("REDIS_DB", "0"))
 	if err != nil || redisDB < 0 {
@@ -59,6 +65,25 @@ func LoadMatchServerAddress() (string, error) {
 	}
 
 	return ":" + port, nil
+}
+
+func LoadMatch() (MatchConfig, error) {
+	serverAddress, err := LoadMatchServerAddress()
+	if err != nil {
+		return MatchConfig{}, err
+	}
+
+	cfg := MatchConfig{
+		ServerAddress: serverAddress,
+		RiotAPIKey:    strings.TrimSpace(os.Getenv("RIOT_API_KEY")),
+		RiotRegion:    getEnv("RIOT_REGION", "americas"),
+	}
+
+	if cfg.RiotAPIKey == "" {
+		return MatchConfig{}, errors.New("RIOT_API_KEY is required")
+	}
+
+	return cfg, nil
 }
 
 func getEnv(name, fallback string) string {

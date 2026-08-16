@@ -1,0 +1,54 @@
+package match
+
+import (
+	"context"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+type fakeMatchLister struct {
+	matchIDs []string
+	puuid    string
+	options  ListOptions
+}
+
+func (f *fakeMatchLister) ListIDsByPUUID(
+	_ context.Context,
+	puuid string,
+	options ListOptions,
+) ([]string, error) {
+	f.puuid = puuid
+	f.options = options
+	return f.matchIDs, nil
+}
+
+func TestHandlerRoutesListMatchIDs(t *testing.T) {
+	lister := &fakeMatchLister{matchIDs: []string{"BR1_123", "BR1_456"}}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	handler := NewHandler(lister, logger)
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"/by-puuid/player-puuid?start=10&count=5",
+		nil,
+	)
+	recorder := httptest.NewRecorder()
+
+	handler.Routes().ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusOK)
+	}
+	if lister.puuid != "player-puuid" {
+		t.Fatalf("PUUID = %q, want %q", lister.puuid, "player-puuid")
+	}
+	if lister.options != (ListOptions{Start: 10, Count: 5}) {
+		t.Fatalf("options = %#v, want start 10 and count 5", lister.options)
+	}
+	if !strings.Contains(recorder.Body.String(), `"BR1_123"`) {
+		t.Fatalf("body = %q, want match IDs", recorder.Body.String())
+	}
+}
