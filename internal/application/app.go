@@ -8,24 +8,26 @@ import (
 	"time"
 
 	"github.com/diegogrlima/lol-tracker/internal/riot"
-	"github.com/redis/go-redis/v9"
 )
 
 type App struct {
-	router      http.Handler
-	redisClient *redis.Client
+	router        http.Handler
+	serverAddress string
 }
 
-func New(redisClient *redis.Client, riotClient *riot.Client) *App {
+func New(
+	riotClient *riot.Client,
+	serverAddress string,
+) *App {
 	return &App{
-		router:      loadRoutes(riotClient),
-		redisClient: redisClient,
+		router:        loadRoutes(riotClient),
+		serverAddress: serverAddress,
 	}
 }
 
 func (a *App) Start(ctx context.Context) error {
 	server := &http.Server{
-		Addr:              ":8080",
+		Addr:              a.serverAddress,
 		Handler:           a.router,
 		ReadHeaderTimeout: 5 * time.Second,
 	}

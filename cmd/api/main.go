@@ -2,17 +2,26 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/diegogrlima/lol-tracker/internal/application"
+	"github.com/diegogrlima/lol-tracker/internal/config"
 	"github.com/diegogrlima/lol-tracker/internal/database"
 	"github.com/diegogrlima/lol-tracker/internal/riot"
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Printf("application stopped with error: %v", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
@@ -20,36 +29,38 @@ func main() {
 	)
 	defer stop()
 
-	redisAddress := os.Getenv("REDIS_ADDRESS")
-
-	if redisAddress == "" {
-		redisAddress = "localhost:6379"
-	}
-
-	redisClient, err := database.NewRedis(ctx, redisAddress)
+	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("connect to Redis: %v", err)
-	}
-	defer redisClient.Close()
-
-	riotAPIKey := os.Getenv("RIOT_API_KEY")
-	riotRegion := os.Getenv("RIOT_REGION")
-	if riotRegion == "" {
-		riotRegion = "americas"
+		return fmt.Errorf("load configuration: %w", err)
 	}
 
-	riotClient, err := riot.NewClient(riotAPIKey, riotRegion)
+	redisClient, err := database.NewRedis(ctx, cfg.RedisAddress)
 	if err != nil {
-		log.Fatalf("configure Riot client: %v", err)
+		return fmt.Errorf("initialize Redis: %w", err)
+	}
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			log.Printf("close Redis connection: %v", err)
+		}
+	}()
+
+	riotClient, err := riot.NewClient(cfg.RiotAPIKey, cfg.RiotRegion)
+	if err != nil {
+		return fmt.Errorf("initialize Riot client: %w", err)
 	}
 
-	app := application.New(redisClient, riotClient)
+	app := application.New(
+		riotClient,
+		cfg.ServerAddress,
+	)
 
-	log.Println("API started on port 8080")
+	log.Printf("API started on %s", cfg.ServerAddress)
 
 	if err := app.Start(ctx); err != nil {
-		log.Fatalf("run application: %v", err)
+		return fmt.Errorf("run application: %w", err)
 	}
 
-	log.Println("API stopped")
+	log.Println("API stopped gracefully")
+
+	return nil
 }
