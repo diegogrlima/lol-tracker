@@ -17,7 +17,11 @@ func loadRoutes() *chi.Mux {
 }
 
 func loadHealthRoutes(router chi.Router) {
-	router.Get("/health", handler.GetHealth)
+	healthHandler := &handler.Health{}
+
+	router.Route("/health", func(r chi.Router) {
+		r.Get("/", healthHandler.GetHealth)
+	})
 }
 
 func loadPlayerRoutes(router chi.Router) {
