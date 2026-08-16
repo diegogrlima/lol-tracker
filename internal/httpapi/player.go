@@ -59,6 +59,11 @@ func handlePlayerError(w http.ResponseWriter, err error) {
 		respondJSON(w, http.StatusServiceUnavailable, errorResponse{
 			Error: "Riot API temporarily unavailable",
 		})
+	case errors.Is(err, player.ErrCacheUnavailable):
+		log.Printf("player cache unavailable: %v", err)
+		respondJSON(w, http.StatusServiceUnavailable, errorResponse{
+			Error: "service temporarily unavailable",
+		})
 	default:
 		log.Printf("get player: %v", err)
 		respondJSON(w, http.StatusBadGateway, errorResponse{

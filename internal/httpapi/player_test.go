@@ -69,6 +69,7 @@ func TestPlayerHandlerMapsDomainErrors(t *testing.T) {
 	}{
 		{name: "not found", err: player.ErrNotFound, wantStatus: http.StatusNotFound},
 		{name: "rate limit", err: player.ErrRateLimited, wantStatus: http.StatusServiceUnavailable},
+		{name: "cache unavailable", err: player.ErrCacheUnavailable, wantStatus: http.StatusServiceUnavailable},
 		{name: "upstream failure", err: errors.New("unavailable"), wantStatus: http.StatusBadGateway},
 	}
 

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,13 +17,15 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
-		log.Printf("player service stopped with error: %v", err)
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	if err := run(logger); err != nil {
+		logger.Error("player service stopped", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run() error {
+func run(logger *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
@@ -47,7 +49,7 @@ func run() error {
 	}
 	defer func() {
 		if err := redisClient.Close(); err != nil {
-			log.Printf("close Redis connection: %v", err)
+			logger.Warn("failed to close Redis connection", "error", err)
 		}
 	}()
 
@@ -57,17 +59,17 @@ func run() error {
 	}
 
 	playerCache := redisadapter.NewPlayerCache(redisClient)
-	playerService := player.NewService(riotClient, playerCache, cfg.CacheTTL)
+	playerService := player.NewService(riotClient, playerCache, cfg.CacheTTL, logger)
 	playerHandler := httpapi.NewPlayerHandler(playerService)
 	router := httpapi.NewRouter(playerHandler)
 	playerServer := server.New(cfg.ServerAddress, router)
 
-	log.Printf("player service started on %s", cfg.ServerAddress)
+	logger.Info("player service started", "address", cfg.ServerAddress)
 
 	if err := playerServer.Start(ctx); err != nil {
 		return fmt.Errorf("run player service: %w", err)
 	}
 
-	log.Println("player service stopped gracefully")
+	logger.Info("player service stopped gracefully")
 	return nil
 }
