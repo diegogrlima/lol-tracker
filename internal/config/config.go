@@ -52,6 +52,15 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
+func LoadMatchServerAddress() (string, error) {
+	port := getEnv("MATCH_SERVER_PORT", "8081")
+	if _, err := strconv.ParseUint(port, 10, 16); err != nil {
+		return "", fmt.Errorf("MATCH_SERVER_PORT must be a valid port: %w", err)
+	}
+
+	return ":" + port, nil
+}
+
 func getEnv(name, fallback string) string {
 	value := os.Getenv(name)
 	if value == "" {

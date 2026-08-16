@@ -21,28 +21,6 @@ type Player struct {
 	TagLine  string `json:"tagLine"`
 }
 
-type AccountProvider interface {
-	GetByRiotID(
-		ctx context.Context,
-		gameName string,
-		tagLine string,
-	) (*Player, error)
-}
-
-type Cache interface {
-	Get(
-		ctx context.Context,
-		gameName string,
-		tagLine string,
-	) (*Player, error)
-
-	Set(
-		ctx context.Context,
-		player *Player,
-		ttl time.Duration,
-	) error
-}
-
 type Service struct {
 	accounts AccountProvider
 	cache    Cache

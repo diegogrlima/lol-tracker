@@ -108,3 +108,23 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadMatchServerAddress(t *testing.T) {
+	t.Setenv("MATCH_SERVER_PORT", "9091")
+
+	address, err := LoadMatchServerAddress()
+	if err != nil {
+		t.Fatalf("LoadMatchServerAddress() returned an error: %v", err)
+	}
+	if address != ":9091" {
+		t.Fatalf("address = %q, want %q", address, ":9091")
+	}
+}
+
+func TestLoadMatchServerAddressRejectsInvalidPort(t *testing.T) {
+	t.Setenv("MATCH_SERVER_PORT", "invalid")
+
+	if _, err := LoadMatchServerAddress(); err == nil {
+		t.Fatal("LoadMatchServerAddress() returned nil error for invalid port")
+	}
+}

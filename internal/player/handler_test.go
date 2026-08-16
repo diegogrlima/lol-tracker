@@ -1,4 +1,4 @@
-package httpapi
+package player
 
 import (
 	"context"
@@ -8,32 +8,31 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/diegogrlima/lol-tracker/internal/player"
 	"github.com/go-chi/chi/v5"
 )
 
-type fakePlayerFinder struct {
-	player *player.Player
+type fakeFinder struct {
+	player *Player
 	err    error
 	calls  int
 }
 
-func (f *fakePlayerFinder) GetByRiotID(
+func (f *fakeFinder) GetByRiotID(
 	context.Context,
 	string,
 	string,
-) (*player.Player, error) {
+) (*Player, error) {
 	f.calls++
 	return f.player, f.err
 }
 
-func TestPlayerHandlerReturnsPlayer(t *testing.T) {
-	finder := &fakePlayerFinder{player: &player.Player{
+func TestHandlerReturnsPlayer(t *testing.T) {
+	finder := &fakeFinder{player: &Player{
 		PUUID:    "puuid",
 		GameName: "Player",
 		TagLine:  "BR1",
 	}}
-	handler := NewPlayerHandler(finder)
+	handler := NewHandler(finder, discardLogger())
 	recorder := httptest.NewRecorder()
 
 	handler.GetByRiotID(recorder, requestWithRiotID("Player", "BR1"))
@@ -46,9 +45,9 @@ func TestPlayerHandlerReturnsPlayer(t *testing.T) {
 	}
 }
 
-func TestPlayerHandlerRejectsEmptyRiotID(t *testing.T) {
-	finder := &fakePlayerFinder{}
-	handler := NewPlayerHandler(finder)
+func TestHandlerRejectsEmptyRiotID(t *testing.T) {
+	finder := &fakeFinder{}
+	handler := NewHandler(finder, discardLogger())
 	recorder := httptest.NewRecorder()
 
 	handler.GetByRiotID(recorder, requestWithRiotID(" ", "BR1"))
@@ -61,21 +60,21 @@ func TestPlayerHandlerRejectsEmptyRiotID(t *testing.T) {
 	}
 }
 
-func TestPlayerHandlerMapsDomainErrors(t *testing.T) {
+func TestHandlerMapsDomainErrors(t *testing.T) {
 	tests := []struct {
 		name       string
 		err        error
 		wantStatus int
 	}{
-		{name: "not found", err: player.ErrNotFound, wantStatus: http.StatusNotFound},
-		{name: "rate limit", err: player.ErrRateLimited, wantStatus: http.StatusServiceUnavailable},
-		{name: "cache unavailable", err: player.ErrCacheUnavailable, wantStatus: http.StatusServiceUnavailable},
+		{name: "not found", err: ErrNotFound, wantStatus: http.StatusNotFound},
+		{name: "rate limit", err: ErrRateLimited, wantStatus: http.StatusServiceUnavailable},
+		{name: "cache unavailable", err: ErrCacheUnavailable, wantStatus: http.StatusServiceUnavailable},
 		{name: "upstream failure", err: errors.New("unavailable"), wantStatus: http.StatusBadGateway},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler := NewPlayerHandler(&fakePlayerFinder{err: tt.err})
+			handler := NewHandler(&fakeFinder{err: tt.err}, discardLogger())
 			recorder := httptest.NewRecorder()
 
 			handler.GetByRiotID(recorder, requestWithRiotID("Player", "BR1"))

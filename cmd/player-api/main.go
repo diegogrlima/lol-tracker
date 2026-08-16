@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/diegogrlima/lol-tracker/internal/config"
-	"github.com/diegogrlima/lol-tracker/internal/httpapi"
 	redisadapter "github.com/diegogrlima/lol-tracker/internal/platform/redis"
 	riotadapter "github.com/diegogrlima/lol-tracker/internal/platform/riot"
 	"github.com/diegogrlima/lol-tracker/internal/player"
@@ -60,8 +60,10 @@ func run(logger *slog.Logger) error {
 
 	playerCache := redisadapter.NewPlayerCache(redisClient)
 	playerService := player.NewService(riotClient, playerCache, cfg.CacheTTL, logger)
-	playerHandler := httpapi.NewPlayerHandler(playerService)
-	router := httpapi.NewRouter(playerHandler)
+	playerHandler := player.NewHandler(playerService, logger)
+	router := server.NewRouter(map[string]http.Handler{
+		"/players": playerHandler.Routes(),
+	})
 	playerServer := server.New(cfg.ServerAddress, router)
 
 	logger.Info("player service started", "address", cfg.ServerAddress)
