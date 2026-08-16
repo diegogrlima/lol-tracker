@@ -20,9 +20,14 @@ type Config struct {
 }
 
 type MatchConfig struct {
-	ServerAddress string
-	RiotAPIKey    string
-	RiotRegion    string
+	ServerAddress  string
+	RedisAddress   string
+	RedisPassword  string
+	RedisDB        int
+	RiotAPIKey     string
+	RiotRegion     string
+	IDsCacheTTL    time.Duration
+	DetailCacheTTL time.Duration
 }
 
 func Load() (Config, error) {
@@ -73,10 +78,30 @@ func LoadMatch() (MatchConfig, error) {
 		return MatchConfig{}, err
 	}
 
+	redisDB, err := strconv.Atoi(getEnv("REDIS_DB", "0"))
+	if err != nil || redisDB < 0 {
+		return MatchConfig{}, errors.New("REDIS_DB must be a non-negative integer")
+	}
+
+	idsCacheTTL, err := time.ParseDuration(getEnv("MATCH_IDS_CACHE_TTL", "5m"))
+	if err != nil || idsCacheTTL <= 0 {
+		return MatchConfig{}, errors.New("MATCH_IDS_CACHE_TTL must be a positive duration")
+	}
+
+	detailCacheTTL, err := time.ParseDuration(getEnv("MATCH_DETAIL_CACHE_TTL", "24h"))
+	if err != nil || detailCacheTTL <= 0 {
+		return MatchConfig{}, errors.New("MATCH_DETAIL_CACHE_TTL must be a positive duration")
+	}
+
 	cfg := MatchConfig{
-		ServerAddress: serverAddress,
-		RiotAPIKey:    strings.TrimSpace(os.Getenv("RIOT_API_KEY")),
-		RiotRegion:    getEnv("RIOT_REGION", "americas"),
+		ServerAddress:  serverAddress,
+		RedisAddress:   getEnv("REDIS_ADDRESS", "localhost:6379"),
+		RedisPassword:  os.Getenv("REDIS_PASSWORD"),
+		RedisDB:        redisDB,
+		RiotAPIKey:     strings.TrimSpace(os.Getenv("RIOT_API_KEY")),
+		RiotRegion:     getEnv("RIOT_REGION", "americas"),
+		IDsCacheTTL:    idsCacheTTL,
+		DetailCacheTTL: detailCacheTTL,
 	}
 
 	if cfg.RiotAPIKey == "" {

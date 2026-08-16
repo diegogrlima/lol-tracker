@@ -11,6 +11,7 @@ import (
 
 	"github.com/diegogrlima/lol-tracker/internal/config"
 	"github.com/diegogrlima/lol-tracker/internal/match"
+	redisadapter "github.com/diegogrlima/lol-tracker/internal/platform/redis"
 	riotadapter "github.com/diegogrlima/lol-tracker/internal/platform/riot"
 	"github.com/diegogrlima/lol-tracker/internal/server"
 )
@@ -42,7 +43,29 @@ func run(logger *slog.Logger) error {
 		return fmt.Errorf("initialize Riot client: %w", err)
 	}
 
-	matchService := match.NewService(riotClient)
+	redisClient, err := redisadapter.NewClient(
+		ctx,
+		cfg.RedisAddress,
+		cfg.RedisPassword,
+		cfg.RedisDB,
+	)
+	if err != nil {
+		return fmt.Errorf("initialize Redis: %w", err)
+	}
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			logger.Warn("failed to close Redis connection", "error", err)
+		}
+	}()
+
+	cachedMatches := redisadapter.NewCachedMatchRepository(
+		redisClient,
+		riotClient,
+		cfg.IDsCacheTTL,
+		cfg.DetailCacheTTL,
+		logger,
+	)
+	matchService := match.NewService(cachedMatches)
 	matchHandler := match.NewHandler(matchService, logger)
 	router := server.NewRouter(map[string]http.Handler{
 		"/matches": matchHandler.Routes(),

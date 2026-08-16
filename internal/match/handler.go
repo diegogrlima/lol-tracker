@@ -12,16 +12,17 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type MatchLister interface {
+type MatchReader interface {
 	ListIDsByPUUID(
 		ctx context.Context,
 		puuid string,
 		options ListOptions,
 	) ([]string, error)
+	GetByID(ctx context.Context, matchID string) (*Match, error)
 }
 
 type Handler struct {
-	matches MatchLister
+	matches MatchReader
 	logger  *slog.Logger
 }
 
@@ -40,7 +41,7 @@ type errorResponse struct {
 }
 
 func NewHandler(
-	matches MatchLister,
+	matches MatchReader,
 	logger *slog.Logger,
 ) *Handler {
 	if logger == nil {
@@ -60,8 +61,21 @@ func (h *Handler) Routes() http.Handler {
 		"/by-puuid/{puuid}",
 		h.ListIDsByPUUID,
 	)
+	router.Get("/{matchID}", h.GetByID)
 
 	return router
+}
+
+func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
+	matchID := strings.TrimSpace(chi.URLParam(r, "matchID"))
+
+	result, err := h.matches.GetByID(r.Context(), matchID)
+	if err != nil {
+		h.handleError(w, err)
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]*Match{"match": result})
 }
 
 func (h *Handler) ListIDsByPUUID(
@@ -175,6 +189,23 @@ func (h *Handler) handleError(
 				Error: err.Error(),
 			},
 		)
+
+	case errors.Is(err, ErrInvalidMatchID):
+		h.respondJSON(w, http.StatusBadRequest, errorResponse{Error: "match ID is required"})
+
+	case errors.Is(err, ErrMatchNotFound):
+		h.respondJSON(w, http.StatusNotFound, errorResponse{Error: "match not found"})
+
+	case errors.Is(err, ErrRateLimited):
+		h.respondJSON(w, http.StatusServiceUnavailable, errorResponse{
+			Error: "Riot API temporarily unavailable",
+		})
+
+	case errors.Is(err, ErrCacheUnavailable):
+		h.logger.Warn("match cache unavailable", "error", err)
+		h.respondJSON(w, http.StatusServiceUnavailable, errorResponse{
+			Error: "service temporarily unavailable",
+		})
 
 	default:
 		h.logger.Error(

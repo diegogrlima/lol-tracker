@@ -128,3 +128,43 @@ func TestLoadMatchServerAddressRejectsInvalidPort(t *testing.T) {
 		t.Fatal("LoadMatchServerAddress() returned nil error for invalid port")
 	}
 }
+
+func TestLoadMatchUsesCacheDefaults(t *testing.T) {
+	t.Setenv("MATCH_SERVER_PORT", "")
+	t.Setenv("REDIS_ADDRESS", "")
+	t.Setenv("REDIS_PASSWORD", "")
+	t.Setenv("REDIS_DB", "")
+	t.Setenv("RIOT_API_KEY", "test-key")
+	t.Setenv("RIOT_REGION", "")
+	t.Setenv("MATCH_IDS_CACHE_TTL", "")
+	t.Setenv("MATCH_DETAIL_CACHE_TTL", "")
+
+	cfg, err := LoadMatch()
+	if err != nil {
+		t.Fatalf("LoadMatch() returned an error: %v", err)
+	}
+	if cfg.RedisAddress != "localhost:6379" || cfg.RedisDB != 0 {
+		t.Fatalf("Redis config = %q DB %d, want localhost:6379 DB 0", cfg.RedisAddress, cfg.RedisDB)
+	}
+	if cfg.IDsCacheTTL != 5*time.Minute {
+		t.Fatalf("IDsCacheTTL = %v, want 5m", cfg.IDsCacheTTL)
+	}
+	if cfg.DetailCacheTTL != 24*time.Hour {
+		t.Fatalf("DetailCacheTTL = %v, want 24h", cfg.DetailCacheTTL)
+	}
+}
+
+func TestLoadMatchRejectsInvalidCacheTTL(t *testing.T) {
+	tests := []string{"MATCH_IDS_CACHE_TTL", "MATCH_DETAIL_CACHE_TTL"}
+
+	for _, key := range tests {
+		t.Run(key, func(t *testing.T) {
+			t.Setenv("RIOT_API_KEY", "test-key")
+			t.Setenv(key, "invalid")
+
+			if _, err := LoadMatch(); err == nil {
+				t.Fatalf("LoadMatch() returned nil error for invalid %s", key)
+			}
+		})
+	}
+}

@@ -14,6 +14,10 @@ const (
 
 var (
 	ErrInvalidPUUID      = errors.New("invalid PUUID")
+	ErrInvalidMatchID    = errors.New("invalid match ID")
+	ErrMatchNotFound     = errors.New("match not found")
+	ErrRateLimited       = errors.New("riot API rate limit exceeded")
+	ErrCacheUnavailable  = errors.New("match cache unavailable")
 	ErrInvalidPagination = errors.New("invalid pagination")
 )
 
@@ -59,4 +63,18 @@ func (s *Service) ListIDsByPUUID(
 	}
 
 	return matchIDs, nil
+}
+
+func (s *Service) GetByID(ctx context.Context, matchID string) (*Match, error) {
+	matchID = strings.TrimSpace(matchID)
+	if matchID == "" {
+		return nil, ErrInvalidMatchID
+	}
+
+	result, err := s.matches.GetByID(ctx, matchID)
+	if err != nil {
+		return nil, fmt.Errorf("get match by ID: %w", err)
+	}
+
+	return result, nil
 }

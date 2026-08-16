@@ -69,6 +69,25 @@ Copie o valor de `puuid` da resposta para testar os endpoints do Match API.
 
 O Match API utiliza a porta `8081` por padrão.
 
+As consultas usam Redis com TTLs independentes:
+
+```env
+MATCH_IDS_CACHE_TTL=5m
+MATCH_DETAIL_CACHE_TTL=24h
+```
+
+As listas são armazenadas com chaves no formato:
+
+```text
+match:ids:{puuid}:{start}:{count}
+```
+
+Os detalhes usam:
+
+```text
+match:detail:{matchID}
+```
+
 ### Iniciar o serviço
 
 ```bash
@@ -131,6 +150,50 @@ Resposta esperada:
   "pagination": {
     "start": 0,
     "count": 20
+  }
+}
+```
+
+### Buscar detalhes de uma partida
+
+Copie um dos valores retornados em `matchIds` e substitua `SEU_MATCH_ID`.
+
+```bash
+curl "http://localhost:8081/matches/SEU_MATCH_ID"
+```
+
+Exemplo:
+
+```bash
+curl "http://localhost:8081/matches/BR1_1234567890"
+```
+
+A resposta contém os metadados da partida, informações da partida e estatísticas dos participantes:
+
+```json
+{
+  "match": {
+    "metadata": {
+      "dataVersion": "2",
+      "matchId": "BR1_1234567890",
+      "participants": [
+        "PUUID_DO_PARTICIPANTE"
+      ]
+    },
+    "info": {
+      "gameMode": "CLASSIC",
+      "queueId": 420,
+      "participants": [
+        {
+          "puuid": "PUUID_DO_PARTICIPANTE",
+          "championName": "Ahri",
+          "kills": 10,
+          "deaths": 2,
+          "assists": 8,
+          "win": true
+        }
+      ]
+    }
   }
 }
 ```
@@ -199,4 +262,10 @@ curl "http://localhost:8080/players/NOME_DO_JOGADOR/TAG"
 
 ```bash
 curl "http://localhost:8081/matches/by-puuid/SEU_PUUID?start=0&count=20"
+```
+
+6. Copie um `matchId` da resposta e busque os detalhes:
+
+```bash
+curl "http://localhost:8081/matches/SEU_MATCH_ID"
 ```

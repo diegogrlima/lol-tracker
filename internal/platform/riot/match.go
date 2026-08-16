@@ -52,3 +52,50 @@ func (c *Client) ListIDsByPUUID(
 
 	return matchIDs, nil
 }
+
+func (c *Client) GetByID(
+	ctx context.Context,
+	matchID string,
+) (*matchdomain.Match, error) {
+	endpoint := fmt.Sprintf(
+		"%s/lol/match/v5/matches/%s",
+		c.baseURL,
+		url.PathEscape(matchID),
+	)
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create Riot match request: %w", err)
+	}
+
+	request.Header.Set("X-Riot-Token", c.apiKey)
+	request.Header.Set("Accept", "application/json")
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("request Riot match API: %w", err)
+	}
+	defer response.Body.Close()
+
+	switch response.StatusCode {
+	case http.StatusNotFound:
+		return nil, matchdomain.ErrMatchNotFound
+	case http.StatusTooManyRequests:
+		return nil, fmt.Errorf(
+			"%w: retry after %s seconds",
+			matchdomain.ErrRateLimited,
+			response.Header.Get("Retry-After"),
+		)
+	}
+
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		return nil, decodeError(response)
+	}
+
+	var result matchdomain.Match
+	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decode Riot match: %w", err)
+	}
+
+	return &result, nil
+}

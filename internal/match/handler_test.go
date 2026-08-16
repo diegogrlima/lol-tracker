@@ -12,7 +12,10 @@ import (
 
 type fakeMatchLister struct {
 	matchIDs []string
+	match    *Match
+	err      error
 	puuid    string
+	matchID  string
 	options  ListOptions
 }
 
@@ -23,7 +26,15 @@ func (f *fakeMatchLister) ListIDsByPUUID(
 ) ([]string, error) {
 	f.puuid = puuid
 	f.options = options
-	return f.matchIDs, nil
+	return f.matchIDs, f.err
+}
+
+func (f *fakeMatchLister) GetByID(
+	_ context.Context,
+	matchID string,
+) (*Match, error) {
+	f.matchID = matchID
+	return f.match, f.err
 }
 
 func TestHandlerRoutesListMatchIDs(t *testing.T) {
@@ -50,5 +61,27 @@ func TestHandlerRoutesListMatchIDs(t *testing.T) {
 	}
 	if !strings.Contains(recorder.Body.String(), `"BR1_123"`) {
 		t.Fatalf("body = %q, want match IDs", recorder.Body.String())
+	}
+}
+
+func TestHandlerRoutesGetMatchByID(t *testing.T) {
+	lister := &fakeMatchLister{match: &Match{
+		Metadata: Metadata{MatchID: "BR1_123"},
+	}}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	handler := NewHandler(lister, logger)
+	request := httptest.NewRequest(http.MethodGet, "/BR1_123", nil)
+	recorder := httptest.NewRecorder()
+
+	handler.Routes().ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusOK)
+	}
+	if lister.matchID != "BR1_123" {
+		t.Fatalf("match ID = %q, want %q", lister.matchID, "BR1_123")
+	}
+	if !strings.Contains(recorder.Body.String(), `"matchId":"BR1_123"`) {
+		t.Fatalf("body = %q, want match details", recorder.Body.String())
 	}
 }

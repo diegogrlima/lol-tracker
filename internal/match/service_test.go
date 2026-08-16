@@ -8,11 +8,17 @@ import (
 
 type fakeRepository struct {
 	matchIDs []string
+	match    *Match
 	err      error
 	calls    int
 
 	receivedPUUID   string
 	receivedOptions ListOptions
+}
+
+func (f *fakeRepository) GetByID(_ context.Context, _ string) (*Match, error) {
+	f.calls++
+	return f.match, f.err
 }
 
 func (f *fakeRepository) ListIDsByPUUID(
@@ -194,5 +200,32 @@ func TestServicePreservesRepositoryError(t *testing.T) {
 			"error = %v, want repository error",
 			err,
 		)
+	}
+}
+
+func TestServiceGetsMatchByID(t *testing.T) {
+	want := &Match{Metadata: Metadata{MatchID: "BR1_123"}}
+	repository := &fakeRepository{match: want}
+	service := NewService(repository)
+
+	result, err := service.GetByID(context.Background(), "BR1_123")
+	if err != nil {
+		t.Fatalf("GetByID() returned an error: %v", err)
+	}
+	if result != want {
+		t.Fatalf("GetByID() = %#v, want %#v", result, want)
+	}
+}
+
+func TestServiceRejectsInvalidMatchID(t *testing.T) {
+	repository := &fakeRepository{}
+	service := NewService(repository)
+
+	_, err := service.GetByID(context.Background(), "   ")
+	if !errors.Is(err, ErrInvalidMatchID) {
+		t.Fatalf("GetByID() error = %v, want ErrInvalidMatchID", err)
+	}
+	if repository.calls != 0 {
+		t.Fatalf("repository calls = %d, want 0", repository.calls)
 	}
 }
