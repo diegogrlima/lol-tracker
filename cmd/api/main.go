@@ -9,6 +9,7 @@ import (
 
 	"github.com/diegogrlima/lol-tracker/internal/application"
 	"github.com/diegogrlima/lol-tracker/internal/database"
+	"github.com/diegogrlima/lol-tracker/internal/riot"
 )
 
 func main() {
@@ -20,6 +21,7 @@ func main() {
 	defer stop()
 
 	redisAddress := os.Getenv("REDIS_ADDRESS")
+
 	if redisAddress == "" {
 		redisAddress = "localhost:6379"
 	}
@@ -30,7 +32,18 @@ func main() {
 	}
 	defer redisClient.Close()
 
-	app := application.New(redisClient)
+	riotAPIKey := os.Getenv("RIOT_API_KEY")
+	riotRegion := os.Getenv("RIOT_REGION")
+	if riotRegion == "" {
+		riotRegion = "americas"
+	}
+
+	riotClient, err := riot.NewClient(riotAPIKey, riotRegion)
+	if err != nil {
+		log.Fatalf("configure Riot client: %v", err)
+	}
+
+	app := application.New(redisClient, riotClient)
 
 	log.Println("API started on port 8080")
 

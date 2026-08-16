@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/diegogrlima/lol-tracker/internal/riot"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -15,9 +16,9 @@ type App struct {
 	redisClient *redis.Client
 }
 
-func New(redisClient *redis.Client) *App {
+func New(redisClient *redis.Client, riotClient *riot.Client) *App {
 	return &App{
-		router:      loadRoutes(),
+		router:      loadRoutes(riotClient),
 		redisClient: redisClient,
 	}
 }

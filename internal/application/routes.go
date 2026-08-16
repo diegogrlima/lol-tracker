@@ -2,16 +2,17 @@ package application
 
 import (
 	"github.com/diegogrlima/lol-tracker/internal/handler"
+	"github.com/diegogrlima/lol-tracker/internal/riot"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func loadRoutes() *chi.Mux {
+func loadRoutes(riotClient *riot.Client) *chi.Mux {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 
 	loadHealthRoutes(router)
-	loadPlayerRoutes(router)
+	loadPlayerRoutes(router, riotClient)
 
 	return router
 }
@@ -24,10 +25,10 @@ func loadHealthRoutes(router chi.Router) {
 	})
 }
 
-func loadPlayerRoutes(router chi.Router) {
-	playerHandler := &handler.Player{}
+func loadPlayerRoutes(router chi.Router, riotClient *riot.Client) {
+	playerHandler := handler.NewPlayer(riotClient)
 
 	router.Route("/players", func(router chi.Router) {
-		router.Get("/{riotID}", playerHandler.GetPlayer)
+		router.Get("/{gameName}/{tagLine}", playerHandler.GetPlayer)
 	})
 }
