@@ -29,6 +29,6 @@ func loadPlayerRoutes(router chi.Router, riotClient *riot.Client) {
 	playerHandler := handler.NewPlayer(riotClient)
 
 	router.Route("/players", func(router chi.Router) {
-		router.Get("/{gameName}/{tagLine}", playerHandler.GetPlayer)
+		router.Get("/{gameName}/{tagLine}", playerHandler.GetByRiotID)
 	})
 }

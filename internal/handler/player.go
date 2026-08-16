@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
+	"strings"
 
 	"github.com/diegogrlima/lol-tracker/internal/riot"
 	"github.com/go-chi/chi/v5"
@@ -22,43 +24,79 @@ type Player struct {
 	riotClient RiotAccountClient
 }
 
-func NewPlayer(riotClient RiotAccountClient) *Player {
-	return &Player{riotClient: riotClient}
+type playerResponse struct {
+	Player *riot.Account `json:"player"`
 }
 
-func (p *Player) GetPlayer(w http.ResponseWriter, r *http.Request) {
-	gameName := chi.URLParam(r, "gameName")
-	tagLine := chi.URLParam(r, "tagLine")
+type errorResponse struct {
+	Error string `json:"error"`
+}
 
-	account, err := p.riotClient.GetAccountByRiotID(r.Context(), gameName, tagLine)
-	if err != nil {
-		switch {
-		case errors.Is(err, riot.ErrAccountNotFound):
-			writeJSON(w, http.StatusNotFound, map[string]string{
-				"error": "player not found",
-			})
+func NewPlayer(riotClient RiotAccountClient) *Player {
+	return &Player{
+		riotClient: riotClient,
+	}
+}
 
-		case errors.Is(err, riot.ErrRateLimited):
-			writeJSON(w, http.StatusServiceUnavailable, map[string]string{
-				"error": "Riot API temporarily unavailable",
-			})
+func (p *Player) GetByRiotID(w http.ResponseWriter, r *http.Request) {
+	gameName := strings.TrimSpace(chi.URLParam(r, "gameName"))
+	tagLine := strings.TrimSpace(chi.URLParam(r, "tagLine"))
 
-		default:
-			writeJSON(w, http.StatusBadGateway, map[string]string{
-				"error": "failed to communicate with Riot API",
-			})
-		}
-
+	if gameName == "" || tagLine == "" {
+		respondJSON(w, http.StatusBadRequest, errorResponse{
+			Error: "gameName and tagLine are required",
+		})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"player": account,
+	account, err := p.riotClient.GetAccountByRiotID(
+		r.Context(),
+		gameName,
+		tagLine,
+	)
+	if err != nil {
+		p.handleRiotError(w, err)
+		return
+	}
+
+	respondJSON(w, http.StatusOK, playerResponse{
+		Player: account,
 	})
 }
 
-func writeJSON(w http.ResponseWriter, status int, value any) {
+func (p *Player) handleRiotError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, riot.ErrAccountNotFound):
+		respondJSON(w, http.StatusNotFound, errorResponse{
+			Error: "player not found",
+		})
+
+	case errors.Is(err, riot.ErrRateLimited):
+		respondJSON(w, http.StatusServiceUnavailable, errorResponse{
+			Error: "Riot API temporarily unavailable",
+		})
+
+	default:
+		log.Printf("get Riot account: %v", err)
+
+		respondJSON(w, http.StatusBadGateway, errorResponse{
+			Error: "failed to communicate with Riot API",
+		})
+	}
+}
+
+func respondJSON(w http.ResponseWriter, status int, value any) {
+	data, err := json.Marshal(value)
+	if err != nil {
+		log.Printf("encode HTTP response: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(value)
+
+	if _, err := w.Write(data); err != nil {
+		log.Printf("write HTTP response: %v", err)
+	}
 }
