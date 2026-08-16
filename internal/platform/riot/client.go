@@ -1,4 +1,4 @@
-package riot
+package riotadapter
 
 import (
 	"context"
@@ -10,11 +10,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
-)
 
-var (
-	ErrAccountNotFound = errors.New("riot account not found")
-	ErrRateLimited     = errors.New("riot API rate limit exceeded")
+	"github.com/diegogrlima/lol-tracker/internal/player"
 )
 
 type Client struct {
@@ -23,16 +20,15 @@ type Client struct {
 	httpClient *http.Client
 }
 
-type Account struct {
+type accountResponse struct {
 	PUUID    string `json:"puuid"`
 	GameName string `json:"gameName"`
 	TagLine  string `json:"tagLine"`
 }
 
-type riotError struct {
+type errorResponse struct {
 	Status struct {
-		Message    string `json:"message"`
-		StatusCode int    `json:"status_code"`
+		Message string `json:"message"`
 	} `json:"status"`
 }
 
@@ -56,11 +52,11 @@ func NewClient(apiKey, region string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) GetAccountByRiotID(
+func (c *Client) GetByRiotID(
 	ctx context.Context,
 	gameName string,
 	tagLine string,
-) (*Account, error) {
+) (*player.Player, error) {
 	endpoint := fmt.Sprintf(
 		"%s/riot/account/v1/accounts/by-riot-id/%s/%s",
 		c.baseURL,
@@ -68,12 +64,7 @@ func (c *Client) GetAccountByRiotID(
 		url.PathEscape(tagLine),
 	)
 
-	request, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodGet,
-		endpoint,
-		nil,
-	)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create Riot request: %w", err)
 	}
@@ -87,39 +78,41 @@ func (c *Client) GetAccountByRiotID(
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode == http.StatusNotFound {
-		return nil, ErrAccountNotFound
-	}
-
-	if response.StatusCode == http.StatusTooManyRequests {
+	switch response.StatusCode {
+	case http.StatusNotFound:
+		return nil, player.ErrNotFound
+	case http.StatusTooManyRequests:
 		return nil, fmt.Errorf(
 			"%w: retry after %s seconds",
-			ErrRateLimited,
+			player.ErrRateLimited,
 			response.Header.Get("Retry-After"),
 		)
 	}
 
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, decodeRiotError(response)
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		return nil, decodeError(response)
 	}
 
-	var account Account
+	var account accountResponse
 	if err := json.NewDecoder(response.Body).Decode(&account); err != nil {
 		return nil, fmt.Errorf("decode Riot account: %w", err)
 	}
 
-	return &account, nil
+	return &player.Player{
+		PUUID:    account.PUUID,
+		GameName: account.GameName,
+		TagLine:  account.TagLine,
+	}, nil
 }
 
-func decodeRiotError(response *http.Response) error {
+func decodeError(response *http.Response) error {
 	body, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
 	if err != nil {
 		return fmt.Errorf("Riot API returned status %d", response.StatusCode)
 	}
 
-	var apiError riotError
-	if err := json.Unmarshal(body, &apiError); err == nil &&
-		apiError.Status.Message != "" {
+	var apiError errorResponse
+	if err := json.Unmarshal(body, &apiError); err == nil && apiError.Status.Message != "" {
 		return fmt.Errorf(
 			"Riot API returned status %d: %s",
 			response.StatusCode,

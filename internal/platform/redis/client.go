@@ -1,4 +1,4 @@
-package database
+package redisadapter
 
 import (
 	"context"
@@ -7,17 +7,21 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func NewRedis(ctx context.Context, address string) (*redis.Client, error) {
+func NewClient(
+	ctx context.Context,
+	address string,
+	password string,
+	db int,
+) (*redis.Client, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     address,
-		Password: "",
-		DB:       0,
+		Password: password,
+		DB:       db,
 	})
 
 	if err := client.Ping(ctx).Err(); err != nil {
 		_ = client.Close()
-
-		return nil, fmt.Errorf("erro ao conectar ao Redis %w", err)
+		return nil, fmt.Errorf("connect to Redis: %w", err)
 	}
 
 	return client, nil
