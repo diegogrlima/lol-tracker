@@ -168,3 +168,32 @@ func TestLoadMatchRejectsInvalidCacheTTL(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadGameUsesDefaults(t *testing.T) {
+	t.Setenv("GAME_SERVER_PORT", "")
+	t.Setenv("DATA_DRAGON_BASE_URL", "")
+	t.Setenv("DATA_DRAGON_VERSION", "")
+	t.Setenv("DATA_DRAGON_LOCALE", "")
+
+	cfg, err := LoadGame()
+	if err != nil {
+		t.Fatalf("LoadGame() returned an error: %v", err)
+	}
+	if cfg.ServerAddress != ":8082" {
+		t.Errorf("ServerAddress = %q, want :8082", cfg.ServerAddress)
+	}
+	if cfg.DataDragonVersion != "16.1.1" {
+		t.Errorf("DataDragonVersion = %q, want 16.1.1", cfg.DataDragonVersion)
+	}
+	if cfg.DataDragonLocale != "pt_BR" {
+		t.Errorf("DataDragonLocale = %q, want pt_BR", cfg.DataDragonLocale)
+	}
+}
+
+func TestLoadGameRejectsInvalidPort(t *testing.T) {
+	t.Setenv("GAME_SERVER_PORT", "invalid")
+
+	if _, err := LoadGame(); err == nil {
+		t.Fatal("LoadGame() returned nil error for invalid port")
+	}
+}

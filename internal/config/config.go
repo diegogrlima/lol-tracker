@@ -30,6 +30,13 @@ type MatchConfig struct {
 	DetailCacheTTL time.Duration
 }
 
+type GameConfig struct {
+	ServerAddress     string
+	DataDragonBaseURL string
+	DataDragonVersion string
+	DataDragonLocale  string
+}
+
 func Load() (Config, error) {
 	redisDB, err := strconv.Atoi(getEnv("REDIS_DB", "0"))
 	if err != nil || redisDB < 0 {
@@ -106,6 +113,22 @@ func LoadMatch() (MatchConfig, error) {
 
 	if cfg.RiotAPIKey == "" {
 		return MatchConfig{}, errors.New("RIOT_API_KEY is required")
+	}
+
+	return cfg, nil
+}
+
+func LoadGame() (GameConfig, error) {
+	port := getEnv("GAME_SERVER_PORT", "8082")
+	if _, err := strconv.ParseUint(port, 10, 16); err != nil {
+		return GameConfig{}, fmt.Errorf("GAME_SERVER_PORT must be a valid port: %w", err)
+	}
+
+	cfg := GameConfig{
+		ServerAddress:     ":" + port,
+		DataDragonBaseURL: strings.TrimRight(getEnv("DATA_DRAGON_BASE_URL", "https://ddragon.leagueoflegends.com"), "/"),
+		DataDragonVersion: getEnv("DATA_DRAGON_VERSION", "16.1.1"),
+		DataDragonLocale:  getEnv("DATA_DRAGON_LOCALE", "pt_BR"),
 	}
 
 	return cfg, nil

@@ -10,6 +10,41 @@ source .env
 set +a
 ```
 
+## Game API
+
+O Game API utiliza a porta `8082` por padrão e consulta os dados estáticos do
+Data Dragon. Esse serviço não precisa da chave da Riot.
+
+### Iniciar o serviço
+
+```bash
+go run ./cmd/game-api
+```
+
+### Listar campeões
+
+```bash
+curl "http://localhost:8082/champions"
+```
+
+Os campeões são retornados em ordem alfabética, incluindo a URL da imagem:
+
+```json
+{
+  "champions": [
+    {
+      "id": "Aatrox",
+      "key": "266",
+      "name": "Aatrox",
+      "title": "a Espada Darkin",
+      "blurb": "Descrição resumida do campeão",
+      "tags": ["Fighter"],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.1.1/img/champion/Aatrox.png"
+    }
+  ]
+}
+```
+
 ## Player API
 
 O Player API utiliza a porta `8080` por padrão.
