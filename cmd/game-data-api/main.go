@@ -11,6 +11,7 @@ import (
 
 	"github.com/diegogrlima/lol-tracker/internal/champion"
 	"github.com/diegogrlima/lol-tracker/internal/config"
+	"github.com/diegogrlima/lol-tracker/internal/item"
 	ddragonadapter "github.com/diegogrlima/lol-tracker/internal/platform/ddragon"
 	"github.com/diegogrlima/lol-tracker/internal/server"
 )
@@ -19,7 +20,7 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	if err := run(logger); err != nil {
-		logger.Error("champion service stopped", "error", err)
+		logger.Error("game data service stopped", "error", err)
 		os.Exit(1)
 	}
 }
@@ -32,7 +33,7 @@ func run(logger *slog.Logger) error {
 	)
 	defer stop()
 
-	cfg, err := config.LoadChampion()
+	cfg, err := config.LoadGameData()
 	if err != nil {
 		return fmt.Errorf("load configuration: %w", err)
 	}
@@ -48,16 +49,19 @@ func run(logger *slog.Logger) error {
 
 	championService := champion.NewService(dataDragonClient)
 	championHandler := champion.NewHandler(championService, logger)
+	itemService := item.NewService(dataDragonClient)
+	itemHandler := item.NewHandler(itemService, logger)
 	router := server.NewRouter(map[string]http.Handler{
 		"/champions": championHandler.Routes(),
+		"/items":     itemHandler.Routes(),
 	})
-	championServer := server.New(cfg.ServerAddress, router)
+	gameDataServer := server.New(cfg.ServerAddress, router)
 
-	logger.Info("champion service started", "address", cfg.ServerAddress)
-	if err := championServer.Run(ctx); err != nil {
-		return fmt.Errorf("run champion service: %w", err)
+	logger.Info("game data service started", "address", cfg.ServerAddress)
+	if err := gameDataServer.Run(ctx); err != nil {
+		return fmt.Errorf("run game data service: %w", err)
 	}
 
-	logger.Info("champion service stopped gracefully")
+	logger.Info("game data service stopped gracefully")
 	return nil
 }

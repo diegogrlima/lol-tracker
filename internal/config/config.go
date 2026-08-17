@@ -30,7 +30,7 @@ type MatchConfig struct {
 	DetailCacheTTL time.Duration
 }
 
-type ChampionConfig struct {
+type GameDataConfig struct {
 	ServerAddress     string
 	DataDragonBaseURL string
 	DataDragonVersion string
@@ -118,13 +118,16 @@ func LoadMatch() (MatchConfig, error) {
 	return cfg, nil
 }
 
-func LoadChampion() (ChampionConfig, error) {
-	port := getEnv("CHAMPION_SERVER_PORT", getEnv("GAME_SERVER_PORT", "8082"))
+func LoadGameData() (GameDataConfig, error) {
+	port := getEnv(
+		"GAME_DATA_SERVER_PORT",
+		getEnv("CHAMPION_SERVER_PORT", getEnv("GAME_SERVER_PORT", "8082")),
+	)
 	if _, err := strconv.ParseUint(port, 10, 16); err != nil {
-		return ChampionConfig{}, fmt.Errorf("CHAMPION_SERVER_PORT must be a valid port: %w", err)
+		return GameDataConfig{}, fmt.Errorf("GAME_DATA_SERVER_PORT must be a valid port: %w", err)
 	}
 
-	cfg := ChampionConfig{
+	cfg := GameDataConfig{
 		ServerAddress:     ":" + port,
 		DataDragonBaseURL: strings.TrimRight(getEnv("DATA_DRAGON_BASE_URL", "https://ddragon.leagueoflegends.com"), "/"),
 		DataDragonVersion: getEnv("DATA_DRAGON_VERSION", "16.1.1"),

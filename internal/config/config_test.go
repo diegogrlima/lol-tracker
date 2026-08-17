@@ -169,15 +169,17 @@ func TestLoadMatchRejectsInvalidCacheTTL(t *testing.T) {
 	}
 }
 
-func TestLoadChampionUsesDefaults(t *testing.T) {
+func TestLoadGameDataUsesDefaults(t *testing.T) {
+	t.Setenv("GAME_DATA_SERVER_PORT", "")
 	t.Setenv("CHAMPION_SERVER_PORT", "")
+	t.Setenv("GAME_SERVER_PORT", "")
 	t.Setenv("DATA_DRAGON_BASE_URL", "")
 	t.Setenv("DATA_DRAGON_VERSION", "")
 	t.Setenv("DATA_DRAGON_LOCALE", "")
 
-	cfg, err := LoadChampion()
+	cfg, err := LoadGameData()
 	if err != nil {
-		t.Fatalf("LoadChampion() returned an error: %v", err)
+		t.Fatalf("LoadGameData() returned an error: %v", err)
 	}
 	if cfg.ServerAddress != ":8082" {
 		t.Errorf("ServerAddress = %q, want :8082", cfg.ServerAddress)
@@ -190,10 +192,10 @@ func TestLoadChampionUsesDefaults(t *testing.T) {
 	}
 }
 
-func TestLoadChampionRejectsInvalidPort(t *testing.T) {
-	t.Setenv("CHAMPION_SERVER_PORT", "invalid")
+func TestLoadGameDataRejectsInvalidPort(t *testing.T) {
+	t.Setenv("GAME_DATA_SERVER_PORT", "invalid")
 
-	if _, err := LoadChampion(); err == nil {
-		t.Fatal("LoadChampion() returned nil error for invalid port")
+	if _, err := LoadGameData(); err == nil {
+		t.Fatal("LoadGameData() returned nil error for invalid port")
 	}
 }

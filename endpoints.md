@@ -10,15 +10,15 @@ source .env
 set +a
 ```
 
-## Champion API
+## Game Data API
 
-O Champion API utiliza a porta `8082` por padrão e consulta os dados estáticos do
-Data Dragon. Esse serviço não precisa da chave da Riot.
+O Game Data API utiliza a porta `8082` por padrão e disponibiliza campeões e
+itens da loja obtidos do Data Dragon. Esse serviço não precisa da chave da Riot.
 
 ### Iniciar o serviço
 
 ```bash
-go run ./cmd/champion-api
+go run ./cmd/game-data-api
 ```
 
 ### Listar campeões
@@ -43,6 +43,20 @@ Os campeões são retornados em ordem alfabética, incluindo a URL da imagem:
     }
   ]
 }
+```
+
+### Listar itens da loja
+
+```bash
+curl "http://localhost:8082/items"
+```
+
+Somente itens compráveis são retornados, ordenados pelo nome.
+
+### Buscar item pelo ID
+
+```bash
+curl "http://localhost:8082/items/1001"
 ```
 
 ## Player API
