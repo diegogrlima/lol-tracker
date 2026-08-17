@@ -2,7 +2,6 @@ package match
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -10,15 +9,6 @@ import (
 const (
 	DefaultCount = 20
 	MaxCount     = 100
-)
-
-var (
-	ErrInvalidPUUID      = errors.New("invalid PUUID")
-	ErrInvalidMatchID    = errors.New("invalid match ID")
-	ErrMatchNotFound     = errors.New("match not found")
-	ErrRateLimited       = errors.New("riot API rate limit exceeded")
-	ErrCacheUnavailable  = errors.New("match cache unavailable")
-	ErrInvalidPagination = errors.New("invalid pagination")
 )
 
 type Service struct {
@@ -71,10 +61,10 @@ func (s *Service) GetByID(ctx context.Context, matchID string) (*Match, error) {
 		return nil, ErrInvalidMatchID
 	}
 
-	result, err := s.matches.GetByID(ctx, matchID)
+	matchDetails, err := s.matches.GetByID(ctx, matchID)
 	if err != nil {
 		return nil, fmt.Errorf("get match by ID: %w", err)
 	}
 
-	return result, nil
+	return matchDetails, nil
 }

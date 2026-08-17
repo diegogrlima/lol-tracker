@@ -11,13 +11,13 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type fakeFinder struct {
+type fakePlayerFinder struct {
 	player *Player
 	err    error
 	calls  int
 }
 
-func (f *fakeFinder) GetByRiotID(
+func (f *fakePlayerFinder) GetByRiotID(
 	context.Context,
 	string,
 	string,
@@ -27,7 +27,7 @@ func (f *fakeFinder) GetByRiotID(
 }
 
 func TestHandlerReturnsPlayer(t *testing.T) {
-	finder := &fakeFinder{player: &Player{
+	finder := &fakePlayerFinder{player: &Player{
 		PUUID:    "puuid",
 		GameName: "Player",
 		TagLine:  "BR1",
@@ -46,7 +46,7 @@ func TestHandlerReturnsPlayer(t *testing.T) {
 }
 
 func TestHandlerRejectsEmptyRiotID(t *testing.T) {
-	finder := &fakeFinder{}
+	finder := &fakePlayerFinder{}
 	handler := NewHandler(finder, discardLogger())
 	recorder := httptest.NewRecorder()
 
@@ -74,7 +74,7 @@ func TestHandlerMapsDomainErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler := NewHandler(&fakeFinder{err: tt.err}, discardLogger())
+			handler := NewHandler(&fakePlayerFinder{err: tt.err}, discardLogger())
 			recorder := httptest.NewRecorder()
 
 			handler.GetByRiotID(recorder, requestWithRiotID("Player", "BR1"))

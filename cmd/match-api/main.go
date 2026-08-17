@@ -73,7 +73,7 @@ func run(logger *slog.Logger) error {
 	matchServer := server.New(cfg.ServerAddress, router)
 
 	logger.Info("match service started", "address", cfg.ServerAddress)
-	if err := matchServer.Start(ctx); err != nil {
+	if err := matchServer.Run(ctx); err != nil {
 		return fmt.Errorf("run match service: %w", err)
 	}
 

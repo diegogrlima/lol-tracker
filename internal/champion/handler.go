@@ -9,12 +9,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type ListReader interface {
+type ChampionLister interface {
 	List(ctx context.Context) ([]Champion, error)
 }
 
 type Handler struct {
-	champions ListReader
+	champions ChampionLister
 	logger    *slog.Logger
 }
 
@@ -26,7 +26,7 @@ type errorResponse struct {
 	Error string `json:"error"`
 }
 
-func NewHandler(champions ListReader, logger *slog.Logger) *Handler {
+func NewHandler(champions ChampionLister, logger *slog.Logger) *Handler {
 	if logger == nil {
 		logger = slog.Default()
 	}

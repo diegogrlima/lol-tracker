@@ -11,12 +11,12 @@ import (
 	"testing"
 )
 
-type fakeListReader struct {
+type fakeChampionLister struct {
 	champions []Champion
 	err       error
 }
 
-func (f *fakeListReader) List(context.Context) ([]Champion, error) {
+func (f *fakeChampionLister) List(context.Context) ([]Champion, error) {
 	return f.champions, f.err
 }
 
@@ -25,8 +25,8 @@ func testLogger() *slog.Logger {
 }
 
 func TestHandlerListsChampions(t *testing.T) {
-	reader := &fakeListReader{champions: []Champion{{ID: "Ahri", Name: "Ahri"}}}
-	handler := NewHandler(reader, testLogger())
+	lister := &fakeChampionLister{champions: []Champion{{ID: "Ahri", Name: "Ahri"}}}
+	handler := NewHandler(lister, testLogger())
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/champions", nil)
 
@@ -42,7 +42,7 @@ func TestHandlerListsChampions(t *testing.T) {
 
 func TestHandlerMapsProviderError(t *testing.T) {
 	handler := NewHandler(
-		&fakeListReader{err: errors.New("unavailable")},
+		&fakeChampionLister{err: errors.New("unavailable")},
 		testLogger(),
 	)
 	recorder := httptest.NewRecorder()

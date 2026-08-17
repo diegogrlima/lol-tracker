@@ -22,7 +22,7 @@ func New(address string, handler http.Handler) *Server {
 	}
 }
 
-func (s *Server) Start(ctx context.Context) error {
+func (s *Server) Run(ctx context.Context) error {
 	serverError := make(chan error, 1)
 
 	go func() {

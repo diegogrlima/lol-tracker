@@ -12,7 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type MatchReader interface {
+type MatchQuery interface {
 	ListIDsByPUUID(
 		ctx context.Context,
 		puuid string,
@@ -22,7 +22,7 @@ type MatchReader interface {
 }
 
 type Handler struct {
-	matches MatchReader
+	matches MatchQuery
 	logger  *slog.Logger
 }
 
@@ -41,7 +41,7 @@ type errorResponse struct {
 }
 
 func NewHandler(
-	matches MatchReader,
+	matches MatchQuery,
 	logger *slog.Logger,
 ) *Handler {
 	if logger == nil {
@@ -69,13 +69,13 @@ func (h *Handler) Routes() http.Handler {
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 	matchID := strings.TrimSpace(chi.URLParam(r, "matchID"))
 
-	result, err := h.matches.GetByID(r.Context(), matchID)
+	matchDetails, err := h.matches.GetByID(r.Context(), matchID)
 	if err != nil {
 		h.handleError(w, err)
 		return
 	}
 
-	h.respondJSON(w, http.StatusOK, map[string]*Match{"match": result})
+	h.respondJSON(w, http.StatusOK, map[string]*Match{"match": matchDetails})
 }
 
 func (h *Handler) ListIDsByPUUID(
@@ -122,7 +122,7 @@ func (h *Handler) ListIDsByPUUID(
 }
 
 func parseListOptions(r *http.Request) (ListOptions, error) {
-	start, err := parseQueryInteger(
+	start, err := parseIntQueryParam(
 		r,
 		"start",
 		0,
@@ -131,7 +131,7 @@ func parseListOptions(r *http.Request) (ListOptions, error) {
 		return ListOptions{}, err
 	}
 
-	count, err := parseQueryInteger(
+	count, err := parseIntQueryParam(
 		r,
 		"count",
 		DefaultCount,
@@ -146,7 +146,7 @@ func parseListOptions(r *http.Request) (ListOptions, error) {
 	}, nil
 }
 
-func parseQueryInteger(
+func parseIntQueryParam(
 	r *http.Request,
 	name string,
 	defaultValue int,

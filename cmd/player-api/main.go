@@ -33,7 +33,7 @@ func run(logger *slog.Logger) error {
 	)
 	defer stop()
 
-	cfg, err := config.Load()
+	cfg, err := config.LoadPlayer()
 	if err != nil {
 		return fmt.Errorf("load configuration: %w", err)
 	}
@@ -68,7 +68,7 @@ func run(logger *slog.Logger) error {
 
 	logger.Info("player service started", "address", cfg.ServerAddress)
 
-	if err := playerServer.Start(ctx); err != nil {
+	if err := playerServer.Run(ctx); err != nil {
 		return fmt.Errorf("run player service: %w", err)
 	}
 

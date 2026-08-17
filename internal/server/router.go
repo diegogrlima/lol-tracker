@@ -16,8 +16,8 @@ func NewRouter(routes map[string]http.Handler) http.Handler {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.Timeout(15 * time.Second))
 
-	router.Get("/health", getHealth)
-	router.Get("/health/", getHealth)
+	router.Get("/health", handleHealthCheck)
+	router.Get("/health/", handleHealthCheck)
 
 	for path, handler := range routes {
 		router.Mount(path, handler)
@@ -26,7 +26,7 @@ func NewRouter(routes map[string]http.Handler) http.Handler {
 	return router
 }
 
-func getHealth(w http.ResponseWriter, _ *http.Request) {
+func handleHealthCheck(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]any{

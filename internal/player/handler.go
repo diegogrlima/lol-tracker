@@ -11,12 +11,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type Finder interface {
+type PlayerFinder interface {
 	GetByRiotID(ctx context.Context, gameName string, tagLine string) (*Player, error)
 }
 
 type Handler struct {
-	players Finder
+	players PlayerFinder
 	logger  *slog.Logger
 }
 
@@ -28,7 +28,7 @@ type errorResponse struct {
 	Error string `json:"error"`
 }
 
-func NewHandler(players Finder, logger *slog.Logger) *Handler {
+func NewHandler(players PlayerFinder, logger *slog.Logger) *Handler {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -53,13 +53,13 @@ func (h *Handler) GetByRiotID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.players.GetByRiotID(r.Context(), gameName, tagLine)
+	playerAccount, err := h.players.GetByRiotID(r.Context(), gameName, tagLine)
 	if err != nil {
 		h.handleError(w, err)
 		return
 	}
 
-	h.respondJSON(w, http.StatusOK, playerResponse{Player: result})
+	h.respondJSON(w, http.StatusOK, playerResponse{Player: playerAccount})
 }
 
 func (h *Handler) handleError(w http.ResponseWriter, err error) {

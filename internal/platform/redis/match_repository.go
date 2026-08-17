@@ -55,7 +55,7 @@ func (r *CachedMatchRepository) ListIDsByPUUID(
 	key := matchIDsKey(puuid, options)
 
 	var matchIDs []string
-	hit, err := r.read(ctx, key, &matchIDs)
+	hit, err := r.readCachedJSON(ctx, key, &matchIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (r *CachedMatchRepository) ListIDsByPUUID(
 		return nil, err
 	}
 
-	r.write(ctx, key, matchIDs, r.idsTTL)
+	r.writeCachedJSON(ctx, key, matchIDs, r.idsTTL)
 	return matchIDs, nil
 }
 
@@ -78,13 +78,13 @@ func (r *CachedMatchRepository) GetByID(
 ) (*matchdomain.Match, error) {
 	key := matchDetailKey(matchID)
 
-	var result matchdomain.Match
-	hit, err := r.read(ctx, key, &result)
+	var cachedMatch matchdomain.Match
+	hit, err := r.readCachedJSON(ctx, key, &cachedMatch)
 	if err != nil {
 		return nil, err
 	}
 	if hit {
-		return &result, nil
+		return &cachedMatch, nil
 	}
 
 	matchResult, err := r.source.GetByID(ctx, matchID)
@@ -92,11 +92,11 @@ func (r *CachedMatchRepository) GetByID(
 		return nil, err
 	}
 
-	r.write(ctx, key, matchResult, r.detailTTL)
+	r.writeCachedJSON(ctx, key, matchResult, r.detailTTL)
 	return matchResult, nil
 }
 
-func (r *CachedMatchRepository) read(
+func (r *CachedMatchRepository) readCachedJSON(
 	ctx context.Context,
 	key string,
 	target any,
@@ -117,7 +117,7 @@ func (r *CachedMatchRepository) read(
 	return true, nil
 }
 
-func (r *CachedMatchRepository) write(
+func (r *CachedMatchRepository) writeCachedJSON(
 	ctx context.Context,
 	key string,
 	value any,

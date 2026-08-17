@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type Config struct {
+type PlayerConfig struct {
 	ServerAddress string
 	RedisAddress  string
 	RedisPassword string
@@ -30,30 +30,30 @@ type MatchConfig struct {
 	DetailCacheTTL time.Duration
 }
 
-type GameConfig struct {
+type ChampionConfig struct {
 	ServerAddress     string
 	DataDragonBaseURL string
 	DataDragonVersion string
 	DataDragonLocale  string
 }
 
-func Load() (Config, error) {
+func LoadPlayer() (PlayerConfig, error) {
 	redisDB, err := strconv.Atoi(getEnv("REDIS_DB", "0"))
 	if err != nil || redisDB < 0 {
-		return Config{}, errors.New("REDIS_DB must be a non-negative integer")
+		return PlayerConfig{}, errors.New("REDIS_DB must be a non-negative integer")
 	}
 
 	cacheTTL, err := time.ParseDuration(getEnv("CACHE_TTL", "5m"))
 	if err != nil || cacheTTL <= 0 {
-		return Config{}, errors.New("CACHE_TTL must be a positive duration")
+		return PlayerConfig{}, errors.New("CACHE_TTL must be a positive duration")
 	}
 
 	serverPort := getEnv("SERVER_PORT", "8080")
 	if _, err := strconv.ParseUint(serverPort, 10, 16); err != nil {
-		return Config{}, fmt.Errorf("SERVER_PORT must be a valid port: %w", err)
+		return PlayerConfig{}, fmt.Errorf("SERVER_PORT must be a valid port: %w", err)
 	}
 
-	cfg := Config{
+	cfg := PlayerConfig{
 		ServerAddress: ":" + serverPort,
 		RedisAddress:  getEnv("REDIS_ADDRESS", "localhost:6379"),
 		RedisPassword: os.Getenv("REDIS_PASSWORD"),
@@ -64,7 +64,7 @@ func Load() (Config, error) {
 	}
 
 	if cfg.RiotAPIKey == "" {
-		return Config{}, errors.New("RIOT_API_KEY is required")
+		return PlayerConfig{}, errors.New("RIOT_API_KEY is required")
 	}
 
 	return cfg, nil
@@ -118,13 +118,13 @@ func LoadMatch() (MatchConfig, error) {
 	return cfg, nil
 }
 
-func LoadGame() (GameConfig, error) {
-	port := getEnv("GAME_SERVER_PORT", "8082")
+func LoadChampion() (ChampionConfig, error) {
+	port := getEnv("CHAMPION_SERVER_PORT", getEnv("GAME_SERVER_PORT", "8082"))
 	if _, err := strconv.ParseUint(port, 10, 16); err != nil {
-		return GameConfig{}, fmt.Errorf("GAME_SERVER_PORT must be a valid port: %w", err)
+		return ChampionConfig{}, fmt.Errorf("CHAMPION_SERVER_PORT must be a valid port: %w", err)
 	}
 
-	cfg := GameConfig{
+	cfg := ChampionConfig{
 		ServerAddress:     ":" + port,
 		DataDragonBaseURL: strings.TrimRight(getEnv("DATA_DRAGON_BASE_URL", "https://ddragon.leagueoflegends.com"), "/"),
 		DataDragonVersion: getEnv("DATA_DRAGON_VERSION", "16.1.1"),

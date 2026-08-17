@@ -8,19 +8,6 @@ import (
 	"time"
 )
 
-var (
-	ErrCacheMiss        = errors.New("player cache miss")
-	ErrCacheUnavailable = errors.New("player cache unavailable")
-	ErrNotFound         = errors.New("player not found")
-	ErrRateLimited      = errors.New("riot API rate limit exceeded")
-)
-
-type Player struct {
-	PUUID    string `json:"puuid"`
-	GameName string `json:"gameName"`
-	TagLine  string `json:"tagLine"`
-}
-
 type Service struct {
 	accounts AccountProvider
 	cache    Cache
@@ -68,12 +55,12 @@ func (s *Service) GetByRiotID(
 		)
 	}
 
-	result, err := s.accounts.GetByRiotID(ctx, gameName, tagLine)
+	playerAccount, err := s.accounts.GetByRiotID(ctx, gameName, tagLine)
 	if err != nil {
 		return nil, fmt.Errorf("get Riot account: %w", err)
 	}
 
-	if err := s.cache.Set(ctx, result, s.cacheTTL); err != nil {
+	if err := s.cache.Set(ctx, playerAccount, s.cacheTTL); err != nil {
 		s.logger.WarnContext(
 			ctx,
 			"failed to cache player",
@@ -81,5 +68,5 @@ func (s *Service) GetByRiotID(
 		)
 	}
 
-	return result, nil
+	return playerAccount, nil
 }

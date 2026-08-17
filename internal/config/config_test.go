@@ -10,7 +10,7 @@ func setRequiredEnvironment(t *testing.T) {
 	t.Setenv("RIOT_API_KEY", "test-key")
 }
 
-func TestLoadUsesDefaults(t *testing.T) {
+func TestLoadPlayerUsesDefaults(t *testing.T) {
 	t.Setenv("SERVER_PORT", "")
 	t.Setenv("REDIS_ADDRESS", "")
 	t.Setenv("REDIS_PASSWORD", "")
@@ -19,9 +19,9 @@ func TestLoadUsesDefaults(t *testing.T) {
 	t.Setenv("CACHE_TTL", "")
 	setRequiredEnvironment(t)
 
-	cfg, err := Load()
+	cfg, err := LoadPlayer()
 	if err != nil {
-		t.Fatalf("Load() returned an error: %v", err)
+		t.Fatalf("LoadPlayer() returned an error: %v", err)
 	}
 
 	if cfg.ServerAddress != ":8080" {
@@ -41,15 +41,15 @@ func TestLoadUsesDefaults(t *testing.T) {
 	}
 }
 
-func TestLoadRequiresRiotAPIKey(t *testing.T) {
+func TestLoadPlayerRequiresRiotAPIKey(t *testing.T) {
 	t.Setenv("RIOT_API_KEY", "")
 
-	if _, err := Load(); err == nil {
-		t.Fatal("Load() returned nil error without RIOT_API_KEY")
+	if _, err := LoadPlayer(); err == nil {
+		t.Fatal("LoadPlayer() returned nil error without RIOT_API_KEY")
 	}
 }
 
-func TestLoadUsesEnvironmentValues(t *testing.T) {
+func TestLoadPlayerUsesEnvironmentValues(t *testing.T) {
 	t.Setenv("SERVER_PORT", "9090")
 	t.Setenv("REDIS_ADDRESS", "redis:6379")
 	t.Setenv("REDIS_PASSWORD", "secret")
@@ -58,9 +58,9 @@ func TestLoadUsesEnvironmentValues(t *testing.T) {
 	t.Setenv("RIOT_REGION", "europe")
 	t.Setenv("CACHE_TTL", "10m")
 
-	cfg, err := Load()
+	cfg, err := LoadPlayer()
 	if err != nil {
-		t.Fatalf("Load() returned an error: %v", err)
+		t.Fatalf("LoadPlayer() returned an error: %v", err)
 	}
 
 	if cfg.ServerAddress != ":9090" {
@@ -86,7 +86,7 @@ func TestLoadUsesEnvironmentValues(t *testing.T) {
 	}
 }
 
-func TestLoadRejectsInvalidValues(t *testing.T) {
+func TestLoadPlayerRejectsInvalidValues(t *testing.T) {
 	tests := []struct {
 		name  string
 		key   string
@@ -102,8 +102,8 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 			setRequiredEnvironment(t)
 			t.Setenv(tt.key, tt.value)
 
-			if _, err := Load(); err == nil {
-				t.Fatalf("Load() returned nil error for %s=%q", tt.key, tt.value)
+			if _, err := LoadPlayer(); err == nil {
+				t.Fatalf("LoadPlayer() returned nil error for %s=%q", tt.key, tt.value)
 			}
 		})
 	}
@@ -169,15 +169,15 @@ func TestLoadMatchRejectsInvalidCacheTTL(t *testing.T) {
 	}
 }
 
-func TestLoadGameUsesDefaults(t *testing.T) {
-	t.Setenv("GAME_SERVER_PORT", "")
+func TestLoadChampionUsesDefaults(t *testing.T) {
+	t.Setenv("CHAMPION_SERVER_PORT", "")
 	t.Setenv("DATA_DRAGON_BASE_URL", "")
 	t.Setenv("DATA_DRAGON_VERSION", "")
 	t.Setenv("DATA_DRAGON_LOCALE", "")
 
-	cfg, err := LoadGame()
+	cfg, err := LoadChampion()
 	if err != nil {
-		t.Fatalf("LoadGame() returned an error: %v", err)
+		t.Fatalf("LoadChampion() returned an error: %v", err)
 	}
 	if cfg.ServerAddress != ":8082" {
 		t.Errorf("ServerAddress = %q, want :8082", cfg.ServerAddress)
@@ -190,10 +190,10 @@ func TestLoadGameUsesDefaults(t *testing.T) {
 	}
 }
 
-func TestLoadGameRejectsInvalidPort(t *testing.T) {
-	t.Setenv("GAME_SERVER_PORT", "invalid")
+func TestLoadChampionRejectsInvalidPort(t *testing.T) {
+	t.Setenv("CHAMPION_SERVER_PORT", "invalid")
 
-	if _, err := LoadGame(); err == nil {
-		t.Fatal("LoadGame() returned nil error for invalid port")
+	if _, err := LoadChampion(); err == nil {
+		t.Fatal("LoadChampion() returned nil error for invalid port")
 	}
 }

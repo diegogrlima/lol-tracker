@@ -19,7 +19,7 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	if err := run(logger); err != nil {
-		logger.Error("game service stopped", "error", err)
+		logger.Error("champion service stopped", "error", err)
 		os.Exit(1)
 	}
 }
@@ -32,7 +32,7 @@ func run(logger *slog.Logger) error {
 	)
 	defer stop()
 
-	cfg, err := config.LoadGame()
+	cfg, err := config.LoadChampion()
 	if err != nil {
 		return fmt.Errorf("load configuration: %w", err)
 	}
@@ -51,13 +51,13 @@ func run(logger *slog.Logger) error {
 	router := server.NewRouter(map[string]http.Handler{
 		"/champions": championHandler.Routes(),
 	})
-	gameServer := server.New(cfg.ServerAddress, router)
+	championServer := server.New(cfg.ServerAddress, router)
 
-	logger.Info("game service started", "address", cfg.ServerAddress)
-	if err := gameServer.Start(ctx); err != nil {
-		return fmt.Errorf("run game service: %w", err)
+	logger.Info("champion service started", "address", cfg.ServerAddress)
+	if err := championServer.Run(ctx); err != nil {
+		return fmt.Errorf("run champion service: %w", err)
 	}
 
-	logger.Info("game service stopped gracefully")
+	logger.Info("champion service stopped gracefully")
 	return nil
 }
